@@ -6,6 +6,25 @@
 >
 > The project now uses a docker environment to use a database for all the requests.
 
+## Start the API
+
+To start the project, since the provided Dockerfile handles  
+```
+npm install
+npm run
+```   
+The only necessary step is :  
+```
+docker compose up -d --build
+```
+
+### Required tools
+
+- Docker desktop
+- The Bruno extension or something similar to verify the endpoints' function
+- DBeaver to verify the base is working properly
+
+
 ## Routes overview
 
 > Routes still work the same user-wise, except they now use SQL queries
