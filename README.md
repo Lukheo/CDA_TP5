@@ -3,8 +3,12 @@
 ## TLDR
 > This API uses the express module to create custom routes and can be tested via Postman/ Bruno
 > The main goal is to try the basic functions of an API
+>
+> The project now uses a docker environment to use a database for all the requests.
 
 ## Routes overview
+
+> Routes still work the same user-wise, except they now use SQL queries
 
 | Method | Route |
 | --- | --- |

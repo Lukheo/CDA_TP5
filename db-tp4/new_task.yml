@@ -1,0 +1,22 @@
+info:
+  name: new_task
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8080/tasks
+  body:
+    type: json
+    data: |-
+      {
+        "title": "dire coucou",
+      "isCompleted": false
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,21 @@
+info:
+  name: put_task
+  type: http
+
+http:
+  method: PUT
+  url: http://localhost:8080/tasks/1
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Dire coucou a Lenny",
+        "isCompleted": true
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

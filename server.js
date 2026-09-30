@@ -1,11 +1,29 @@
 const express = require('express');
+const pool = require('./db')
 const app = express();
-const port = 3000;
+const port = 8080;
 
 app.use(express.json());
 
 let tasks = [];
 let nextId = 1;
+
+app.get('/test-db', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT NOW()');
+
+        res.json({
+            message: 'Connexion PostgreSQL réussie',
+            date: result.rows[0].now
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: 'Erreur de connexion à PostgreSQL'
+        });
+    }
+});
+
 
 app.get('/', (req, res) => {
     res.json({
@@ -13,7 +31,7 @@ app.get('/', (req, res) => {
     });
 });
 
-app.post('/tasks', (req, res) => {
+app.post('/tasks', async(req, res) => {
     const { title, isCompleted } = req.body;
 
     if (!title) {
@@ -22,120 +40,210 @@ app.post('/tasks', (req, res) => {
         })
     }
 
-    const newTask = {
-        id: nextId++,
-        title: title,
-        isCompleted: isCompleted ?? false //false by default
-    };
+    try {
+        const result = await pool.query(
+            `INSERT INTO tasks (title, completed)
+             VALUES ($1, $2)
+             RETURNING *`,
+            [title, isCompleted ?? false]
+        );
 
-    tasks.push(newTask);
+        const task = {
+            id: result.rows[0].id,
+            title: result.rows[0].title,
+            isCompleted: result.rows[0].completed
+        };
 
-    res.status(201).json({
-        message: 'task created',
-        newTask
-    });
+        res.status(201).json({
+            message: 'task created',
+            newTask: task
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'Error creating task'
+        });
+    }
 
 });
 
-app.get('/tasks', (req, res) => {
+app.get('/tasks', async(req, res) => {
     const { status } = req.query;
 
-    if (status === undefined) {
-        return res.json({
-            message: `${tasks.length} tasks found`,
-            tasks
-        });
-    };
+    try {
+        let result;
 
-    if (status !== 'completed' && status !== 'uncompleted') {
-        return res.status(400).json({
-            message: 'incorrect status'
-        });
-    };
+        if(status === undefined) {
+            result = await pool.query(
+                'SELECT * FROM tasks ORDER BY id'
+            );
+        } else {
 
-    const filteredTasks = tasks.filter((task) => {
-        if (status === 'completed') {
-            return task.isCompleted === true;
+            if (status !== 'completed' && status !== 'uncompleted') {
+                return res.status(400).json({
+                    message: 'incorrect status'
+                });
+            }
+
+            const completed = status === 'completed';
+
+            result = await pool.query(
+                `SELECT * FROM tasks 
+                WHERE completed = $1
+                ORDER BY id`,
+                [completed]
+            );
         }
 
-        return task.isCompleted === false;
-    });
+        const tasks = result.rows.map(task => ({
+            id: task.id,
+            title: task.title,
+            isCompleted: task.completed
+        }));
 
-    res.json({
-        message: `${filteredTasks.length} ${status} tasks found`,
-        filteredTasks
-    });
+        res.json({
+            message: `${tasks.length} ${status ? status + ' ' : ''}tasks found`,
+            tasks
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error retrieving tasks'
+        });
+    }
 });
 
-app.put('/tasks/:id', (req, res) => {
+app.put('/tasks/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     const { title, isCompleted } = req.body;
 
-    const task = tasks.find((task) => task.id === id);
-
-    if (!task) {
-        return res.status(404).json({
-            message: 'task not found'
-        })
-    }
-
-    if(title == undefined){
-        res.status(400).json({
+    if (title === undefined) {
+        return res.status(400).json({
             message: "needs a title"
         });
-    };
+    }
 
-    if(isCompleted == undefined){
-        res.status(400).json({
+    if (isCompleted === undefined) {
+        return res.status(400).json({
             message: "needs a status"
         });
-    };
-    
-    task.title = title;
-    task.isCompleted = isCompleted;
+    }
 
-    res.json({
-        message: 'task modified',
-        task
-    });
-});
+    try {
+        const result = await pool.query(
+            `UPDATE tasks
+             SET title = $1,
+                 completed = $2
+             WHERE id = $3
+             RETURNING *`,
+            [title, isCompleted, id]
+        );
 
-app.delete('/tasks/:id', (req, res) => {
-    const id = parseInt(req.params.id);
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: 'task not found'
+            });
+        }
 
-    const taskIndex = tasks.findIndex((task) => task.id === id);
+        const task = {
+            id: result.rows[0].id,
+            title: result.rows[0].title,
+            isCompleted: result.rows[0].completed
+        };
 
-    if (taskIndex === -1) {
-        return res.status(404).json({
-            message: 'task not found'
+        res.json({
+            message: 'task modified',
+            task
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'Error modifying task'
         });
     }
-
-    const deletedTask = tasks.splice(taskIndex, 1);
-
-    res.json({
-        message: 'task deleted',
-        task: deletedTask[0]
-    });
 });
 
-app.patch('/tasks/:id/completed', (req, res) => {
+
+app.delete('/tasks/:id', async (req, res) => {
     const id = parseInt(req.params.id);
 
-    const task = tasks.find(t => t.id === id);
+    try {
+        const result = await pool.query(
+            `DELETE FROM tasks
+             WHERE id = $1
+             RETURNING *`,
+            [id]
+        );
 
-    if (!task) {
-        return res.status(404).json({ message: 'task not found' });
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: 'task not found'
+            });
+        }
+
+        const deletedTask = {
+            id: result.rows[0].id,
+            title: result.rows[0].title,
+            isCompleted: result.rows[0].completed
+        };
+
+        res.json({
+            message: 'task deleted',
+            task: deletedTask
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'Error deleting task'
+        });
     }
-
-    task.isCompleted = !task.isCompleted;
-
-    res.json({
-        message: 'task status toggled',
-        task
-    });
 });
 
-app.listen(port, () => {
+app.patch('/tasks/:id/completed', async (req, res) => {
+    const id = parseInt(req.params.id);
+
+    try {
+        const result = await pool.query(
+            `UPDATE tasks
+             SET completed = NOT completed
+             WHERE id = $1
+             RETURNING *`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: 'task not found'
+            });
+        }
+
+        const task = {
+            id: result.rows[0].id,
+            title: result.rows[0].title,
+            isCompleted: result.rows[0].completed
+        };
+
+        res.json({
+            message: 'task status toggled',
+            task
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'Error toggling task status'
+        });
+    }
+});
+
+
+app.listen(port, '0.0.0.0', () => {
     console.log(`Serveur Express en cours sur http://localhost:${port}`);
 });

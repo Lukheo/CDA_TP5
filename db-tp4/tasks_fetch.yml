@@ -1,0 +1,28 @@
+info:
+  name: tasks_fetch
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8080/tasks
+  params:
+    - name: status
+      value: completed
+      type: query
+      disabled: true
+    - name: status
+      value: uncompleted
+      type: query
+      disabled: true
+    - name: status
+      value: other
+      type: query
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
