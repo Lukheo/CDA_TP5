@@ -1,12 +1,15 @@
 const express = require('express');
 const pool = require('./db')
 const app = express();
-const port = 8080;
+const cors = require('cors');
+const port = 3000;
 
 app.use(express.json());
 
-let tasks = [];
-let nextId = 1;
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+}));
+
 
 app.get('/test-db', async (req, res) => {
     try {
