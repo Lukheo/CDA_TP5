@@ -21,6 +21,8 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
+  --padding: 6px 12px;
+
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
@@ -161,7 +163,6 @@ code {
 }
 
 .tasks li.completed {
-  background-color: var(--success-bg);
   border-color: var(--success);
 }
 
@@ -171,7 +172,7 @@ input {
   border: 2px solid var(--info-text);
   background-color: var(--white);
   color: var(--info-text);
-  padding: 6px 12px;
+  padding: var(--padding);
   margin: 6px;
 
   &:hover {
@@ -205,7 +206,28 @@ input {
   width: fit-content;
   background-color: var(--success);
   color: var(--white);
-  padding: 6px 12px;
+  padding: var(--padding);
   border-radius: 10px;
   font-size: 80%;
+}
+
+.rgpd-info {
+  margin-top: 16px;
+  font-size: 80%;
+  font-weight: 700;
+  line-height: 1.5;
+  border-left: 4px solid var(--error);
+  background-color: var(--error-bg);
+  color: var(--info-text);
+  padding: 20px;
+  border-radius: 0 10px 10px 0;
+}
+
+.benevole-nom {
+  width: fit-content;
+  margin: 0 auto;
+  font-size: 90%;
+  padding: var(--padding);
+  border-radius: 100px;
+  background-color: var(--white);
 }

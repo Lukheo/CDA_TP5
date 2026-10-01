@@ -13,33 +13,8 @@ function App() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [titleError, setTitleError] = useState('')
-
-  const loadTasks = async () => {
-    try {
-      setError('')
-      setTitleError('')
-
-      let url = `${API_URL}/tasks`
-
-      if (filter === 'completed') {
-        url += '?status=completed'
-      } else if (filter === 'uncompleted') {
-        url += '?status=uncompleted'
-      }
-
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        throw new Error('Impossible de récupérer les tâches');
-      }
-
-      const data = await response.json();
-      setTasks(data.tasks);
-
-    } catch {
-      setError(`Impossible de contacter l'API.`);
-    }
-  };
+  const [assignee, setAssignee] = useState('')
+  const [refresh, setRefresh] = useState(0)
 
   // useEffect(() => {
   //   loadTasks();
@@ -73,7 +48,7 @@ function App() {
     };
 
     fetchTasks();
-  }, [filter]);
+  }, [filter, refresh]);
 
   const addTask = async (event) => {
     event.preventDefault();
@@ -103,6 +78,7 @@ function App() {
         body: JSON.stringify({
           title: title.trim(),
           isCompleted: false,
+          assignee: assignee.trim() || null,
         }),
       });
 
@@ -113,10 +89,11 @@ function App() {
       };
 
       setTitle('');
+      setAssignee('');
       setMessage(`Tâche "${data.newTask.title}" ajoutée avec succès.`);
 
 
-      loadTasks();
+      setRefresh(value => value + 1);
 
     } catch (error) {
       setError(error.message || `Impossible d'ajouter la tâche`);
@@ -140,7 +117,7 @@ function App() {
       };
 
       setMessage(`Statut de la tâche ${id} modifié.`);
-      loadTasks();
+      setRefresh(value => value + 1);
     } catch (error) {
       setError(error.message || 'Impossible de modifier la tâche.');
       setMessage('');
@@ -163,9 +140,33 @@ function App() {
       }
 
       setMessage(`Tâche ${id} supprimée avec succès.`);
-      loadTasks();
+      setRefresh(value => value + 1);
     } catch (error) {
       setError(error.message || 'Impossible de supprimer la tâche.');
+      setMessage('');
+    }
+  };
+
+  const removeAssignee = async (id) => {
+    try {
+      setError('');
+      setMessage('');
+
+      const response = await fetch(
+        `${API_URL}/tasks/${id}/assignee`,
+        { method: 'PATCH' }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erreur lors du retrait du bénévole');
+      }
+
+      setMessage('Bénévole retiré de la tâche.');
+      setRefresh(value => value + 1);
+    } catch (error) {
+      setError(error.message || 'Impossible de retirer le bénévole.');
       setMessage('');
     }
   };
@@ -178,19 +179,36 @@ function App() {
       </header>
       <main>
         <form onSubmit={addTask} className="task-form">
-          <label htmlFor="task-title">
-            Nouvelle tâche
-          </label>
           <div>
+            <div>
+              <label htmlFor="titre-tache">
+                Nouvelle tâche
+              </label>
+              <input
+                id='titre-tache'
+                type="text"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Titre de la tâche"
+                maxLength={255}
+                aria-describedby={error ? 'title-error' : undefined}
+              />
+            </div>
 
-            <input
-              type="text"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Titre de la tâche"
-              maxLength={255}
-              aria-describedby={error ? 'task-error' : undefined}
-            />
+            <div>
+              <label htmlFor="assignee">
+                Prénom du bénévole
+              </label>
+
+              <input
+                id="assignee"
+                type="text"
+                value={assignee}
+                maxLength={50}
+                onChange={(event) => setAssignee(event.target.value)}
+                placeholder="Prénom du bénévole"
+              />
+            </div>
 
 
             <button type="submit">
@@ -203,18 +221,32 @@ function App() {
             )}
           </div>
         </form>
+        <p className="rgpd-info">
+          Le prénom saisi sert uniquement à savoir quel bénévole s&apos;occupe de la tâche.
+          Il est supprimé en même temps que la tâche. Pour le faire retirer plus tôt :
+          <code>contact@association.example</code>
+        </p>
 
         <div className={`filters ${filter}`} aria-label="Filtrage des tâches">
           <h2>Filtrage des tâches</h2>
-          <button onClick={() => setFilter('all')} aria-pressed={filter === 'all'}>
+          <button
+            onClick={() => setFilter('all')}
+            aria-pressed={filter === 'all'}
+            type='button'>
             Toutes
           </button>
 
-          <button onClick={() => setFilter('completed')} aria-pressed={filter === 'completed'}>
+          <button
+            onClick={() => setFilter('completed')}
+            aria-pressed={filter === 'completed'}
+            type='button'>
             Complétées
           </button>
 
-          <button onClick={() => setFilter('uncompleted')} aria-pressed={filter === 'uncompleted'}>
+          <button
+            onClick={() => setFilter('uncompleted')}
+            aria-pressed={filter === 'uncompleted'}
+            type='button'>
             Non complétées
           </button>
         </div>
@@ -240,20 +272,43 @@ function App() {
                 {task.isCompleted && (
                   <p className="completion">Tâche complétée</p>
                 )}
-                <b>tâche n°{task.id} :</b>
+                <b>tâche n°{task.id} : </b>
                 <span>
                   {task.title}
                 </span>
+                {task.assignee && (
+                  <p className='benevole-nom'>
+                    Bénévole : {task.assignee}
+                  </p>
+                )}
               </div>
 
+              <label>
+                <input
+                  type="checkbox"
+                  checked={task.isCompleted}
+                  onChange={() => toggleTask(task.id)}
+                />
+                {task.isCompleted
+                  ? 'Tâche complétée'
+                  : 'Tâche non complétée'}
+              </label>
               <div>
-                <button onClick={() => toggleTask(task.id)}>
-                  {task.isCompleted
-                    ? 'Marquer non complétée'
-                    : 'Marquer complétée'}
-                </button>
 
-                <button onClick={() => deleteTask(task.id)}>
+                {task.assignee && (
+                  <button
+                    type="button"
+                    onClick={() => removeAssignee(task.id)}
+                    aria-label='Retirer le bénévole assigné'
+                  >
+                    Retirer le bénévole
+                  </button>
+                )}
+
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  type='button'
+                  aria-label={`Supprimer la tâche ${task.title}`}>
                   Supprimer
                 </button>
               </div>
