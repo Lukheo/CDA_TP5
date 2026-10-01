@@ -1,14 +1,16 @@
 # TP4 - API creation
 
 ## TLDR
-> This API uses the express module to create custom routes and can be tested via Postman/ Bruno
-> The main goal is to try the basic functions of an API
+> This API uses the express module to create custom routes and can be tested via Postman/ Bruno  
+> The main goal is to try the basic functions of an API  
 >
-> The project now uses a docker environment to use a database for all the requests.
+> The project now uses a docker environment to use a database for all the requests.  
+> The project runs its frontend using a vite scaffolder.
+> `npm create vite@latest frontend -- --template react`
 
-## Start the API
+## Start the Project
 
-To start the project, since the provided Dockerfile handles  
+To start the project's API, since the provided Dockerfile handles  
 ```
 npm install
 npm run
@@ -17,6 +19,21 @@ The only necessary step is :
 ```
 docker compose up -d --build
 ```
+
+Check the containers' deployment using
+
+`docker compose ps`
+
+You should see two lines
+
+```
+tasks_api
+tasks_db
+```
+
+### Once the docker containers run correctly
+
+To start the **Frontend** part, since it uses vite
 
 ### Required tools
 
