@@ -325,3 +325,57 @@ PATCH http://localhost:3000/tasks/5/completed
   "message": "task not found"
 }
 ```
+
+## Traitement des données personnelles
+
+### Finalité
+
+L'application collecte le prénom du bénévole afin d'indiquer quelle personne est assignée à une tâche.
+
+Cette donnée est utilisée uniquement dans le cadre de la gestion et du suivi des tâches.
+
+### Données collectées
+
+L'application collecte uniquement :
+
+* le prénom du bénévole ;
+* le titre de la tâche ;
+* le statut de la tâche.
+
+Le prénom du bénévole est limité à 50 caractères. Aucune donnée supplémentaire telle que le nom de famille, l'adresse e-mail ou le numéro de téléphone n'est collectée.
+
+Les données utilisées pour les tests sont fictives.
+
+### Durée de conservation
+
+Le prénom du bénévole est conservé uniquement pendant la durée de vie de la tâche à laquelle il est associé.
+
+Lorsque la tâche est supprimée, le prénom associé est supprimé en même temps.
+
+Le bénévole peut également demander la suppression de son prénom sans supprimer la tâche.
+
+### Accès aux données
+
+Les données sont utilisées par l'application de gestion des tâches et sont stockées dans la base de données PostgreSQL.
+
+Aucun service tiers de suivi ou d'analyse n'est utilisé par l'application.
+
+### Droits des personnes
+
+La personne concernée peut demander :
+
+* l'accès à ses données ;
+* la rectification de ses données ;
+* la suppression de ses données.
+
+Pour demander la suppression du prénom associé à une tâche, un bouton « Retirer le bénévole » est disponible directement dans l'application.
+
+Une demande peut également être effectuée à l'adresse :
+
+`contact@association.example`
+
+### Sécurité
+
+Les données sont stockées dans une base PostgreSQL et les accès à la base utilisent des variables d'environnement pour les identifiants de connexion.
+
+Les données personnelles ne sont pas enregistrées volontairement dans les logs de l'API.
