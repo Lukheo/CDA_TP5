@@ -12,10 +12,12 @@ function App() {
   const [filter, setFilter] = useState('all')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [titleError, setTitleError] = useState('')
 
   const loadTasks = async () => {
     try {
       setError('')
+      setTitleError('')
 
       let url = `${API_URL}/tasks`
 
@@ -34,21 +36,58 @@ function App() {
       const data = await response.json();
       setTasks(data.tasks);
 
-    } catch (error) {
+    } catch {
       setError(`Impossible de contacter l'API.`);
     }
   };
 
+  // useEffect(() => {
+  //   loadTasks();
+  // }, [filter]);
+
+  // to avoid an ESlint error linked to "calling setState within an effet can trigger cascading renders"
   useEffect(() => {
-    loadTasks();
+    const fetchTasks = async () => {
+      try {
+        let url = `${API_URL}/tasks`;
+
+        if (filter === 'completed') {
+          url += '?status=completed';
+        } else if (filter === 'uncompleted') {
+          url += '?status=uncompleted';
+        }
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error('Impossible de récupérer les tâches');
+        }
+
+        const data = await response.json();
+
+        setTasks(data.tasks);
+        setError('');
+      } catch {
+        setError("Impossible de contacter l'API.");
+      }
+    };
+
+    fetchTasks();
   }, [filter]);
 
   const addTask = async (event) => {
     event.preventDefault();
+    setTitleError('');
 
     if (!title.trim()) {
-      setError('Le titre est obligatoire');
+      setTitleError('Le titre est obligatoire');
       setMessage('');
+      return;
+    }
+
+    // extra "safety" if a user finds a way to send without using the input
+    if (title.trim().length > 255) {
+      setTitleError('Le titre ne peut pas dépasser 255 caractères');
       return;
     }
 
@@ -74,7 +113,8 @@ function App() {
       };
 
       setTitle('');
-      setMessage('Tâche ajoutée avec succès.');
+      setMessage(`Tâche "${data.newTask.title}" ajoutée avec succès.`);
+
 
       loadTasks();
 
@@ -99,7 +139,7 @@ function App() {
         throw new Error(data.message || 'Erreur lors de la modification');
       };
 
-      setMessage('Statut de la tâche modifié.');
+      setMessage(`Statut de la tâche ${id} modifié.`);
       loadTasks();
     } catch (error) {
       setError(error.message || 'Impossible de modifier la tâche.');
@@ -122,7 +162,7 @@ function App() {
         throw new Error(data.message || 'Erreur lors de la suppression');
       }
 
-      setMessage('Tâche supprimée avec succès.');
+      setMessage(`Tâche ${id} supprimée avec succès.`);
       loadTasks();
     } catch (error) {
       setError(error.message || 'Impossible de supprimer la tâche.');
@@ -133,73 +173,101 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Gestion des tâches</h1>
+      <header>
+        <h1>Gestion des tâches</h1>
+      </header>
+      <main>
+        <form onSubmit={addTask} className="task-form">
+          <label htmlFor="task-title">
+            Nouvelle tâche
+          </label>
+          <div>
 
-      <form onSubmit={addTask} className="task-form">
-        <input
-          type="text"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="Titre de la tâche"
-        />
-        <button type="submit">
-          Ajouter
-        </button>
-      </form>
+            <input
+              type="text"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Titre de la tâche"
+              maxLength={255}
+              aria-describedby={error ? 'task-error' : undefined}
+            />
 
-      <div className="filters">
-        <button onClick={() => setFilter('all')}>
-          Toutes
-        </button>
 
-        <button onClick={() => setFilter('completed')}>
-          Complétées
-        </button>
+            <button type="submit">
+              Ajouter
+            </button>
+            {titleError && (
+              <p id="task-error" className="title-error" role="alert">
+                {titleError}
+              </p>
+            )}
+          </div>
+        </form>
 
-        <button onClick={() => setFilter('uncompleted')}>
-          Non complétées
-        </button>
-      </div>
+        <div className={`filters ${filter}`} aria-label="Filtrage des tâches">
+          <h2>Filtrage des tâches</h2>
+          <button onClick={() => setFilter('all')} aria-pressed={filter === 'all'}>
+            Toutes
+          </button>
 
-      {message && (
-        <p className="success">
-          {message}
-        </p>
-      )}
+          <button onClick={() => setFilter('completed')} aria-pressed={filter === 'completed'}>
+            Complétées
+          </button>
 
-      {error && (
-        <p className="error">
-          {error}
-        </p>
-      )}
+          <button onClick={() => setFilter('uncompleted')} aria-pressed={filter === 'uncompleted'}>
+            Non complétées
+          </button>
+        </div>
 
-      <ul className="tasks">
-        {tasks.map((task) => (
-          <li key={task.id}>
-            <span className={task.isCompleted ? 'completed' : ''}>
-              {task.title}
-            </span>
+        <div className="infos">
+          {message && (
+            <p className="success" role="status">
+              {message}
+            </p>
+          )}
 
-            <div>
-              <button onClick={() => toggleTask(task.id)}>
-                {task.isCompleted
-                  ? 'Marquer non complétée'
-                  : 'Marquer complétée'}
-              </button>
+          {error && (
+            <p className="error" role='alert'>
+              {error}
+            </p>
+          )}
+        </div>
 
-              <button onClick={() => deleteTask(task.id)}>
-                Supprimer
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+        <ul className="tasks">
+          {tasks.map((task) => (
+            <li key={task.id} className={task.isCompleted ? 'completed' : ''}>
+              <div>
+                {task.isCompleted && (
+                  <p className="completion">Tâche complétée</p>
+                )}
+                <b>tâche n°{task.id} :</b>
+                <span>
+                  {task.title}
+                </span>
+              </div>
 
-      {tasks.length === 0 && (
-        <p>Aucune tâche à afficher.</p>
-      )}
+              <div>
+                <button onClick={() => toggleTask(task.id)}>
+                  {task.isCompleted
+                    ? 'Marquer non complétée'
+                    : 'Marquer complétée'}
+                </button>
+
+                <button onClick={() => deleteTask(task.id)}>
+                  Supprimer
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        {tasks.length === 0 && (
+          <p>Aucune tâche à afficher.</p>
+        )}
+      </main>
 
     </div>
+
   )
 }
 

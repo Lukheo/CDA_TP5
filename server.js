@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('./db')
 const app = express();
 const cors = require('cors');
+const Joi = require('joi');
 const port = 3000;
 
 app.use(express.json());
@@ -9,6 +10,11 @@ app.use(express.json());
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
 }));
+
+const taskSchema = Joi.object({
+  title: Joi.string().trim().min(1).max(255).required(),
+  isCompleted: Joi.boolean().default(false),
+});
 
 
 app.get('/test-db', async (req, res) => {
@@ -35,7 +41,16 @@ app.get('/', (req, res) => {
 });
 
 app.post('/tasks', async(req, res) => {
-    const { title, isCompleted } = req.body;
+
+    const { error, value } = taskSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({
+      message: error.details[0].message,
+    });
+  }
+
+  const { title, isCompleted } = value;
 
     if (!title) {
         return res.status(400).json({
