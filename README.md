@@ -33,7 +33,14 @@ tasks_db
 
 ### Once the docker containers run correctly
 
-To start the **Frontend** part, since it uses vite
+To start the **Frontend** part, since it uses vite, the commands are
+
+```
+cd frontend //to move to the frontend part
+npm run dev
+```
+
+The project is now running on [localhost:5173](http://localhost:5173/)
 
 ### Required tools
 
@@ -41,6 +48,37 @@ To start the **Frontend** part, since it uses vite
 - The Bruno extension or something similar to verify the endpoints' function
 - DBeaver to verify the base is working properly
 
+## Accessibility checkings
+
+### Using Lighthouse
+
+<img width="1381" height="392" alt="image" src="https://github.com/user-attachments/assets/f624373b-b652-4d8c-a005-b5001d669ef3" />
+
+### Using axe Devtools
+<img width="1402" height="591" alt="image" src="https://github.com/user-attachments/assets/6b959734-c102-4745-996c-e528c09c7a97" />
+
+### Using to npm audit command
+
+run `npm audit`  
+
+**result :**  
+
+<img width="585" height="43" alt="image" src="https://github.com/user-attachments/assets/4bc444a8-2ab0-404f-9e54-2208e6a13c1c" />
+
+### Using ESLint
+
+<img width="750" height="101" alt="image" src="https://github.com/user-attachments/assets/ec92b8ee-a6b5-4c78-a29a-fb995c1a21d9" />
+
+## Quick questions
+
+### Pourquoi aucune variable VITE_ ne contient de secret
+> Toute variable avec le préfixe `VITE_` sera lue par le frontend, donc visible côté javascript du navigateur
+
+### Pourquoi la validation du frontend ne suffit pas
+> Valider côté front rend simplement l'utilisation plus agréable, mais n'offre pas une protection suffisante contre les contournements du formulaire
+
+### Pourquoi l’application n’a pas besoin de bandeau cookies
+> L'application n'a aucun cookie nécessaire à son fonctionnement, et n'a aucun outil d'analytics en place
 
 ## Routes overview
 
